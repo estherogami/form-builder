@@ -48,13 +48,47 @@ export const TextFieldFormElement: FormElement = {
         label: "Text Field",
     },
     designerComponent: DesignerComponent,
-    formComponent: () => <div>Form component</div>,
-    propertiesComponent: PropertiesComponent,
+    formComponent: FormComponent, //Este se ve en la preview
+    propertiesComponent: PropertiesComponent, //Sidebar
 }
 
 //Extendemos el tipo FormElementsInstance para que extra attributes reconozca los valores personalizados del text field que definimos en linea 6
 type CustomInstance = FormElementInstance & {
     extraAttributes: typeof extraAttributes;
+}
+
+
+//Componente que cargara en el designer
+function DesignerComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
+    const element = elementInstance as CustomInstance; //instance con campos personalizadaos
+    const { label, required, placeHolder, helperText } = element.extraAttributes
+    return (
+        <div className="flex flex-col gap-2 w-full">
+            <Label>
+                {label}
+                {required && "*"}
+            </Label>
+            <Input readOnly disabled placeholder={placeHolder} />
+            {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
+        </div>
+    );
+}
+
+
+//Componente que cargara en la preview
+function FormComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
+    const element = elementInstance as CustomInstance; //instance con campos personalizadaos
+    const { label, required, placeHolder, helperText } = element.extraAttributes
+    return (
+        <div className="flex flex-col gap-2 w-full">
+            <Label>
+                {label}
+                {required && "*"}
+            </Label>
+            <Input placeholder={placeHolder} />
+            {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
+        </div>
+    );
 }
 
 //Tipo del form
@@ -173,21 +207,5 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
                     )} />
             </form>
         </Form>
-    );
-}
-
-//Componente que cargara en el designer
-function DesignerComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
-    const element = elementInstance as CustomInstance; //instance con campos personalizadaos
-    const { label, required, placeHolder, helperText } = element.extraAttributes
-    return (
-        <div className="flex flex-col gap-2 w-full">
-            <Label>
-                {label}
-                {required && "*"}
-            </Label>
-            <Input readOnly disabled placeholder={placeHolder} />
-            {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
-        </div>
     );
 }
