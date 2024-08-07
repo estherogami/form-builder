@@ -1,12 +1,12 @@
 "use client"
 import { MdTextFields } from "react-icons/md";
-import { ElementsType, FormElement, FormElementInstance } from "../FormElements";
+import { ElementsType, FormElement, FormElementInstance, SubmitFunction } from "../FormElements";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../../ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useDesigner from "@/components/hooks/useDesigner";
 
 import {
@@ -19,6 +19,7 @@ import {
     FormMessage
 } from "../../ui/form";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 const type: ElementsType = "TextField";
 const extraAttributes = {
@@ -50,6 +51,16 @@ export const TextFieldFormElement: FormElement = {
     designerComponent: DesignerComponent,
     formComponent: FormComponent, //Este se ve en la preview
     propertiesComponent: PropertiesComponent, //Sidebar
+
+    validate: (formElement: FormElementInstance, currentValue: string
+    ): boolean => {
+        const element = formElement as CustomInstance;
+        if (element.extraAttributes.required) {
+            return currentValue.length > 0;
+        }
+
+        return true;
+    }
 }
 
 //Extendemos el tipo FormElementsInstance para que extra attributes reconozca los valores personalizados del text field que definimos en linea 6
@@ -76,17 +87,37 @@ function DesignerComponent({ elementInstance }: { elementInstance: FormElementIn
 
 
 //Componente que cargara en la preview
-function FormComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
-    const element = elementInstance as CustomInstance; //instance con campos personalizadaos
-    const { label, required, placeHolder, helperText } = element.extraAttributes
+function FormComponent({ elementInstance, submitValue, isInvalid, defaultValue }: { elementInstance: FormElementInstance, submitValue?: SubmitFunction, isInvalid?: boolean, defaultValue?: string }) {
+    const element = elementInstance as CustomInstance; //instance con campos personalizados
+    const [value, setValue] = useState(defaultValue || "");
+    const { label, required, placeHolder, helperText } = element.extraAttributes;
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        setError(isInvalid === true);
+    }, [isInvalid]);
+
+
     return (
         <div className="flex flex-col gap-2 w-full">
-            <Label>
+            <Label className={cn(error && "text-red-500")}>
                 {label}
                 {required && "*"}
             </Label>
-            <Input placeholder={placeHolder} />
-            {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
+            <Input
+                className={cn(error && "border-red-500")}
+                placeholder={placeHolder}
+                onChange={(e) => setValue(e.target.value)}
+                onBlur={(e) => {
+                    if (!submitValue) return;
+                    const valid = TextFieldFormElement.validate(element, e.target.value);
+                    setError(!valid);
+                    if(valid) return;
+                    submitValue(element.id, e.target.value);
+                }}
+                value={value} />
+            {helperText && <p className={cn("text-muted-foreground text-[0.8rem]", 
+            error && "text-red-500")}>{helperText}</p>}
         </div>
     );
 }
@@ -191,11 +222,11 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
                     render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
-                            <FormLabel>Required</FormLabel>
-                            <FormDescription>
-                                The helper text of the field. <br />
-                                It will be displayed below the field.
-                            </FormDescription>
+                                <FormLabel>Required</FormLabel>
+                                <FormDescription>
+                                    The helper text of the field. <br />
+                                    It will be displayed below the field.
+                                </FormDescription>
                             </div>
                             <FormControl>
                                 <Switch
